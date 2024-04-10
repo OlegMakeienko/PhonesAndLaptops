@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PhonesAndLaptops")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+18d9d6093feb380f55e8bf6704b3d83debe97f7c")]
 [assembly: System.Reflection.AssemblyProductAttribute("PhonesAndLaptops")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PhonesAndLaptops")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

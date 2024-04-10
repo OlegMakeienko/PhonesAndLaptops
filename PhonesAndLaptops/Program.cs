@@ -62,15 +62,15 @@ using (var context = new MyDbContext())
     //
     // context.SaveChanges();
     
-    var laptops = context.Laptops.ToList();
-    var mobilePhones = context.MobilePhones.ToList();
-
-    var assets = laptops.Cast<Asset>().Concat(mobilePhones).OrderBy(a => a.Name).ToList();
-    ProductionManager productionManager = new ProductionManager(assets);
-    
-    productionManager.DisplayAllAssets();
-    
-    productionManager.UpdateProductionDate("Nokia", new DateTime(2010, 10, 10));
-    
-    productionManager.PrintAssets();
+    // var laptops = context.Laptops.ToList();
+    // var mobilePhones = context.MobilePhones.ToList();
+    //
+    // var assets = laptops.Cast<Asset>().Concat(mobilePhones).OrderBy(a => a.Name).ToList();
+    // ProductionManager productionManager = new ProductionManager(assets);
+    //
+    // productionManager.DisplayAllAssets();
+    //
+    // productionManager.UpdateProductionDate("Nokia", new DateTime(2010, 10, 10));
+    //
+    // productionManager.PrintAssets();
 }

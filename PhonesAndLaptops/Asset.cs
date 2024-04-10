@@ -7,4 +7,7 @@ public class Asset
     public string Model { get; set; }
     public decimal Price { get; set; }
     public DateTime ProductionDate { get; set; }
+    public int OfficeId { get; set; } // Foreign key
+
+    public Office Office { get; set; }
 }
