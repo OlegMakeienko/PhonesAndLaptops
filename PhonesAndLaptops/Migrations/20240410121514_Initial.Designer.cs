@@ -11,7 +11,7 @@ using PhonesAndLaptops;
 namespace PhonesAndLaptops.Migrations
 {
     [DbContext(typeof(MyDbContext))]
-    [Migration("20240407132143_Initial")]
+    [Migration("20240410121514_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -22,11 +22,16 @@ namespace PhonesAndLaptops.Migrations
                 .HasAnnotation("ProductVersion", "8.0.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
-            modelBuilder.Entity("PhonesAndLaptops.Laptop", b =>
+            modelBuilder.Entity("PhonesAndLaptops.Asset", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    b.Property<string>("Discriminator")
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .HasColumnType("varchar(13)");
 
                     b.Property<string>("Model")
                         .IsRequired()
@@ -36,6 +41,9 @@ namespace PhonesAndLaptops.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<int>("OfficeId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
@@ -44,32 +52,65 @@ namespace PhonesAndLaptops.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Laptops");
+                    b.HasIndex("OfficeId");
+
+                    b.ToTable("Asset");
+
+                    b.HasDiscriminator<string>("Discriminator").HasValue("Asset");
+
+                    b.UseTphMappingStrategy();
+                });
+
+            modelBuilder.Entity("PhonesAndLaptops.Office", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("Price")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Offices");
+                });
+
+            modelBuilder.Entity("PhonesAndLaptops.Laptop", b =>
+                {
+                    b.HasBaseType("PhonesAndLaptops.Asset");
+
+                    b.HasDiscriminator().HasValue("Laptop");
                 });
 
             modelBuilder.Entity("PhonesAndLaptops.MobilePhone", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                    b.HasBaseType("PhonesAndLaptops.Asset");
 
-                    b.Property<string>("Model")
-                        .IsRequired()
-                        .HasColumnType("longtext");
+                    b.HasDiscriminator().HasValue("MobilePhone");
+                });
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("longtext");
+            modelBuilder.Entity("PhonesAndLaptops.Asset", b =>
+                {
+                    b.HasOne("PhonesAndLaptops.Office", "Office")
+                        .WithMany("Assets")
+                        .HasForeignKey("OfficeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
+                    b.Navigation("Office");
+                });
 
-                    b.Property<DateTime>("ProductionDate")
-                        .HasColumnType("datetime(6)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("MobilePhones");
+            modelBuilder.Entity("PhonesAndLaptops.Office", b =>
+                {
+                    b.Navigation("Assets");
                 });
 #pragma warning restore 612, 618
         }
