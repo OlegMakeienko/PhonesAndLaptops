@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace PhonesAndLaptops;
 
@@ -39,13 +40,21 @@ public class ProductionManager
         // Visa laptops och deras kontor
         foreach (var laptop in laptops)
         {
-            Console.WriteLine($"Name: {laptop.Name}, Model: {laptop.Model}, Price: {laptop.Price:C}, Production Date: {laptop.ProductionDate.ToShortDateString()}, Office: {laptop.Office?.Name ?? "No Office"}");
+            Console.WriteLine($"Name: {laptop.Name}, " +
+                              $"Model: {laptop.Model}, " +
+                              $"Price: {laptop.Price:C}, " +
+                              $"Production Date: {laptop.ProductionDate.ToShortDateString()}, " +
+                              $"Office: {laptop.Office?.Name ?? "No Office"}");
         }
 
         // Visa mobiltelefoner och deras kontor
         foreach (var phone in mobilePhones)
         {
-            Console.WriteLine($"Name: {phone.Name}, Model: {phone.Model}, Price: {phone.Price:C}, Production Date: {phone.ProductionDate.ToShortDateString()}, Office: {phone.Office?.Name ?? "No Office"}");
+            Console.WriteLine($"Name: {phone.Name}, " +
+                              $"Model: {phone.Model}, " +
+                              $"Price: {phone.Price:C}, " +
+                              $"Production Date: {phone.ProductionDate.ToShortDateString()}, " +
+                              $"Office: {phone.Office?.Name ?? "No Office"}");
         }
     }
     
@@ -87,20 +96,40 @@ public class ProductionManager
         return assets;
     }
 
-    public void DisplayAssets()
+    public async Task DisplayAssets()
     {
         assets = GetAllPhonesAndLaptops();
         Console.WriteLine("All Assets:");
-        foreach (var asset in assets)
         {
-            var statusColor = GetEndOfLifeStatus(asset.ProductionDate);
-            Console.ForegroundColor = statusColor;
-            Console.WriteLine($"Name: {asset.Name}, " +
-                              $"Model: {asset.Model}, " +
-                              $"Price: {asset.Price:C}, " +
-                              $"Production Date: {asset.ProductionDate.ToShortDateString()}, " +
-                              $"Office: {asset.Office.Name}");
+            Console.WriteLine("{0,-15} {1,-15} {2,-15} {3,-15} {4,-15} {5,-15} {6,-15} {7,-15:N0}", 
+                "Type", "Brand", "Model", "Office", "Purchase Date", "Price in USD", "Currency", "Local Price Today (SEK)");
+    
+            foreach (var asset in assets.OrderBy(a => a.GetType().Name).ThenBy(a => a.ProductionDate))
+            {
+                var statusColor = GetEndOfLifeStatus(asset.ProductionDate);
+                Console.ForegroundColor = statusColor;
+                Console.WriteLine("{0,-15} {1,-15} {2,-15} {3,-15} {4,-15} {5,-15} {6,-15} {7,-15:N0}",
+                    asset.GetType().Name, asset.Name, asset.Model, asset.Office.Name, asset.ProductionDate.ToString("d"),
+                    asset.Price, GetCurrencyBasedOnOffice(asset), await LocalPriceToday(asset));
+            }
             Console.ResetColor();
+        }
+    }
+    
+    private string GetCurrencyBasedOnOffice(Asset asset)
+    {
+        var office = asset.Office.Name;
+        if (office == "London")
+        {
+            return "GBP";
+        }
+        else if (office == "Stockholm")
+        {
+            return "SEK";
+        }
+        else
+        {
+            return "EUR";
         }
     }
 
@@ -124,6 +153,20 @@ public class ProductionManager
         }
     }
 
+    private async Task<double> LocalPriceToday(Asset asset)
+    {
+        var exchangeRate = await GetExchangeRateToSEK(asset);
+        return asset.Price * exchangeRate;
+    }
+    
+    private async Task<double> GetExchangeRateToSEK(Asset asset)
+    {
+        var httpClient = new HttpClient();
+        var response = await httpClient.GetAsync("https://api.exchangerate-api.com/v4/latest/" + this.GetCurrencyBasedOnOffice(asset));
+        var data = await response.Content.ReadAsStringAsync();
+        var exchangeRates = JsonConvert.DeserializeObject<ExchangeRateResponse>(data);
+        return exchangeRates.Rates["SEK"];
+    }
     public void UpdateProductionDate(string assetName, DateTime newDate)
     {
         var asset = assets.FirstOrDefault(a => a.Name == assetName);

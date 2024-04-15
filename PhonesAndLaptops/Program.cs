@@ -1,13 +1,19 @@
 ﻿using PhonesAndLaptops;
 using Microsoft.EntityFrameworkCore;
 
-using (var context = new MyDbContext())
+internal class Program
 {
-    // var seed = new Seed(context);
-    // seed.SeedData();
+    static async Task Main(string[] args)
+    {
+        using (var context = new MyDbContext())
+        {
+            // var seed = new Seed(context);
+            // seed.SeedData();
     
-    var manager = new ProductionManager(context);
-    manager.DisplayAssets();
+            var manager = new ProductionManager(context);
+            await manager.DisplayAssets();
 
 
+        }
+    }
 }
