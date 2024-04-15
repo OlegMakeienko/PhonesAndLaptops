@@ -1,8 +1,16 @@
+using Microsoft.EntityFrameworkCore;
+
 namespace PhonesAndLaptops;
 
 public class ProductionManager
 {
     private List<Asset> assets; // Antag att du har en lista med Asset
+    private MyDbContext _context;
+
+    public ProductionManager(MyDbContext context)
+    {
+        _context = context;
+    }
 
     public ProductionManager(List<Asset> assets)
     {
@@ -26,12 +34,20 @@ public class ProductionManager
     public void DisplayAllAssets()
     {
         Console.WriteLine("All Assets:");
-        foreach (var asset in assets)
+        // Hämta alla laptops och mobiltelefoner inklusive deras kontor
+        var laptops = _context.Laptops.Include(l => l.Office).ToList();
+        var mobilePhones = _context.MobilePhones.Include(m => m.Office).ToList();
+
+        // Visa laptops och deras kontor
+        foreach (var laptop in laptops)
         {
-            Console.WriteLine($"Name: {asset.Name}, " +
-                              $"Model: {asset.Model}, " +
-                              $"Price: {asset.Price:C}, " +
-                              $"Production Date: {asset.ProductionDate.ToShortDateString()}");
+            Console.WriteLine($"Name: {laptop.Name}, Model: {laptop.Model}, Price: {laptop.Price:C}, Production Date: {laptop.ProductionDate.ToShortDateString()}, Office: {laptop.Office?.Name ?? "No Office"}");
+        }
+
+        // Visa mobiltelefoner och deras kontor
+        foreach (var phone in mobilePhones)
+        {
+            Console.WriteLine($"Name: {phone.Name}, Model: {phone.Model}, Price: {phone.Price:C}, Production Date: {phone.ProductionDate.ToShortDateString()}, Office: {phone.Office?.Name ?? "No Office"}");
         }
     }
     
