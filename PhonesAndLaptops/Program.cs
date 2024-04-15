@@ -7,6 +7,7 @@ using (var context = new MyDbContext())
     // seed.SeedData();
     
     var manager = new ProductionManager(context);
-    manager.DisplayAllAssets();
-    
+    manager.DisplayAssets();
+
+
 }

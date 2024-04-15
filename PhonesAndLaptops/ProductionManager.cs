@@ -10,28 +10,26 @@ public class ProductionManager
     public ProductionManager(MyDbContext context)
     {
         _context = context;
-    }
+        assets = new List<Asset>(); // Skapa en tom lista för att samla assets
 
-    public ProductionManager(List<Asset> assets)
-    {
-        this.assets = assets;
-    }
+        // Hämta laptops och mobiltelefoner och inkludera deras kontor
+        var laptops = _context.Laptops.Include(l => l.Office).ToList();
+        var mobilePhones = _context.MobilePhones.Include(m => m.Office).ToList();
 
-    public void UpdateProductionDate(string assetName, DateTime newDate)
-    {
-        var asset = assets.FirstOrDefault(a => a.Name == assetName);
-        if (asset != null)
+        // Lägg till alla laptops i assets-listan
+        foreach (var laptop in laptops)
         {
-            asset.ProductionDate = newDate;
-            Console.WriteLine($"Updated {asset.Name}'s production date to {newDate.ToShortDateString()}.");
+            assets.Add(laptop);
         }
-        else
+
+        // Lägg till alla mobiltelefoner i assets-listan
+        foreach (var phone in mobilePhones)
         {
-            Console.WriteLine("Asset not found.");
+            assets.Add(phone);
         }
     }
     
-    public void DisplayAllAssets()
+    public void DisplayAllPhonesAndLaptops()
     {
         Console.WriteLine("All Assets:");
         // Hämta alla laptops och mobiltelefoner inklusive deras kontor
@@ -51,6 +49,95 @@ public class ProductionManager
         }
     }
     
+    public List<Asset> GetAllPhonesAndLaptops()
+    {
+        var assets = new List<Asset>();
+
+        // Hämta alla laptops och mobiltelefoner inklusive deras kontor
+        var laptops = _context.Laptops.Include(l => l.Office).ToList();
+        var mobilePhones = _context.MobilePhones.Include(m => m.Office).ToList();
+
+        // Lägg till laptops till assets-listan
+        foreach (var laptop in laptops)
+        {
+            var asset = new Asset
+            {
+                Name = laptop.Name,
+                Model = laptop.Model,
+                Price = laptop.Price,
+                ProductionDate = laptop.ProductionDate,
+                Office = laptop.Office
+            };
+            assets.Add(asset);
+        }
+
+        // Lägg till mobiltelefoner till assets-listan
+        foreach (var phone in mobilePhones)
+        {
+            var asset = new Asset
+            {
+                Name = phone.Name,
+                Model = phone.Model,
+                Price = phone.Price,
+                ProductionDate = phone.ProductionDate,
+                Office = phone.Office
+            };
+            assets.Add(asset);
+        }
+        return assets;
+    }
+
+    public void DisplayAssets()
+    {
+        assets = GetAllPhonesAndLaptops();
+        Console.WriteLine("All Assets:");
+        foreach (var asset in assets)
+        {
+            var statusColor = GetEndOfLifeStatus(asset.ProductionDate);
+            Console.ForegroundColor = statusColor;
+            Console.WriteLine($"Name: {asset.Name}, " +
+                              $"Model: {asset.Model}, " +
+                              $"Price: {asset.Price:C}, " +
+                              $"Production Date: {asset.ProductionDate.ToShortDateString()}, " +
+                              $"Office: {asset.Office.Name}");
+            Console.ResetColor();
+        }
+    }
+
+    private ConsoleColor GetEndOfLifeStatus(DateTime productionDate)
+    {
+        var endOfLifeDate = productionDate.AddYears(3);
+        var threeMonthsBeforeEndOfLife = endOfLifeDate.AddMonths(-3);
+        var sixMonthsBeforeEndOfLife = endOfLifeDate.AddMonths(-6);
+
+        if (DateTime.Now >= threeMonthsBeforeEndOfLife)
+        {
+            return ConsoleColor.Red;
+        }
+        else if (DateTime.Now >= sixMonthsBeforeEndOfLife && DateTime.Now < threeMonthsBeforeEndOfLife)
+        {
+            return ConsoleColor.Yellow;
+        }
+        else
+        {
+            return ConsoleColor.White;
+        }
+    }
+
+    public void UpdateProductionDate(string assetName, DateTime newDate)
+    {
+        var asset = assets.FirstOrDefault(a => a.Name == assetName);
+        if (asset != null)
+        {
+            asset.ProductionDate = newDate;
+            Console.WriteLine($"Updated {asset.Name}'s production date to {newDate.ToShortDateString()}.");
+        }
+        else
+        {
+            Console.WriteLine("Asset not found.");
+        }
+    }
+    
     public void DeleteAsset(string assetName)
     {
         var assetToRemove = assets.FirstOrDefault(a => a.Name == assetName);
@@ -62,40 +149,6 @@ public class ProductionManager
         else
         {
             Console.WriteLine("Asset not found.");
-        }
-    }
-    
-    public void PrintAssets()
-    {
-        foreach (var asset in assets)
-        {
-            string status = GetAssetStatus(asset);
-            if (status == "Old gadget must be changed!")
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-            }
-            else
-            {
-                Console.ResetColor();
-            }
-            Console.WriteLine($"{asset.Name} ({status})");
-        }
-        Console.ResetColor();
-    }
-    
-    private string GetAssetStatus(Asset asset)
-    {
-        TimeSpan timeSinceProduction = DateTime.Now - asset.ProductionDate;
-        int years = timeSinceProduction.Days / 365;
-        int months = (timeSinceProduction.Days % 365) / 30;
-
-        if (years >= 3 && months >= 3)
-        {
-            return "Old gadget must be changed!"; // Röd status
-        }
-        else
-        {
-            return "Normal"; // Grön status
         }
     }
 }
