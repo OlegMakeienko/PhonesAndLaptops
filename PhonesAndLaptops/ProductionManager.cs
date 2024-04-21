@@ -5,106 +5,21 @@ namespace PhonesAndLaptops;
 
 public class ProductionManager
 {
-    private List<Asset> assets; // Antag att du har en lista med Asset
-    private MyDbContext _context;
-
-    public ProductionManager(MyDbContext context)
-    {
-        _context = context;
-        assets = new List<Asset>(); // Skapa en tom lista för att samla assets
-
-        // Hämta laptops och mobiltelefoner och inkludera deras kontor
-        var laptops = _context.Laptops.Include(l => l.Office).ToList();
-        var mobilePhones = _context.MobilePhones.Include(m => m.Office).ToList();
-
-        // Lägg till alla laptops i assets-listan
-        foreach (var laptop in laptops)
-        {
-            assets.Add(laptop);
-        }
-
-        // Lägg till alla mobiltelefoner i assets-listan
-        foreach (var phone in mobilePhones)
-        {
-            assets.Add(phone);
-        }
-    }
+    private List<Asset> _assets;
+    private readonly AssetService _assetService;
     
-    public void DisplayAllPhonesAndLaptops()
-    {
-        Console.WriteLine("All Assets:");
-        // Hämta alla laptops och mobiltelefoner inklusive deras kontor
-        var laptops = _context.Laptops.Include(l => l.Office).ToList();
-        var mobilePhones = _context.MobilePhones.Include(m => m.Office).ToList();
-
-        // Visa laptops och deras kontor
-        foreach (var laptop in laptops)
-        {
-            Console.WriteLine($"Name: {laptop.Name}, " +
-                              $"Model: {laptop.Model}, " +
-                              $"Price: {laptop.Price:C}, " +
-                              $"Production Date: {laptop.ProductionDate.ToShortDateString()}, " +
-                              $"Office: {laptop.Office?.Name ?? "No Office"}");
-        }
-
-        // Visa mobiltelefoner och deras kontor
-        foreach (var phone in mobilePhones)
-        {
-            Console.WriteLine($"Name: {phone.Name}, " +
-                              $"Model: {phone.Model}, " +
-                              $"Price: {phone.Price:C}, " +
-                              $"Production Date: {phone.ProductionDate.ToShortDateString()}, " +
-                              $"Office: {phone.Office?.Name ?? "No Office"}");
-        }
+    public ProductionManager(MyDbContext context) {
+        _assetService = new AssetService(context);
     }
-    
-    public List<Asset> GetAllPhonesAndLaptops()
-    {
-        var assets = new List<Asset>();
-
-        // Hämta alla laptops och mobiltelefoner inklusive deras kontor
-        var laptops = _context.Laptops.Include(l => l.Office).ToList();
-        var mobilePhones = _context.MobilePhones.Include(m => m.Office).ToList();
-
-        // Lägg till laptops till assets-listan
-        foreach (var laptop in laptops)
-        {
-            var asset = new Asset
-            {
-                Name = laptop.Name,
-                Model = laptop.Model,
-                Price = laptop.Price,
-                ProductionDate = laptop.ProductionDate,
-                Office = laptop.Office
-            };
-            assets.Add(asset);
-        }
-
-        // Lägg till mobiltelefoner till assets-listan
-        foreach (var phone in mobilePhones)
-        {
-            var asset = new Asset
-            {
-                Name = phone.Name,
-                Model = phone.Model,
-                Price = phone.Price,
-                ProductionDate = phone.ProductionDate,
-                Office = phone.Office
-            };
-            assets.Add(asset);
-        }
-        return assets;
-    }
-
     public async Task DisplayAssets()
     {
-        assets = GetAllPhonesAndLaptops();
+        _assets = _assetService.GetAllAssets();
         Console.WriteLine("All Assets:");
         {
             Console.WriteLine("{0,-15} {1,-15} {2,-15} {3,-15} {4,-15} {5,-15} {6,-15} {7,-15:N0}", 
                 "Type", "Brand", "Model", "Office", "Purchase Date", "Price in USD", "Currency", "Local Price Today (SEK)");
     
-            foreach (var asset in assets.OrderBy(a => a.GetType().Name).ThenBy(a => a.ProductionDate))
+            foreach (var asset in _assets.OrderBy(a => a.GetType().Name).ThenBy(a => a.ProductionDate))
             {
                 var statusColor = GetEndOfLifeStatus(asset.ProductionDate);
                 Console.ForegroundColor = statusColor;
@@ -167,26 +82,77 @@ public class ProductionManager
         var exchangeRates = JsonConvert.DeserializeObject<ExchangeRateResponse>(data);
         return exchangeRates.Rates["SEK"];
     }
-    public void UpdateProductionDate(string assetName, DateTime newDate)
+    
+    public void CreateAsset()
     {
-        var asset = assets.FirstOrDefault(a => a.Name == assetName);
-        if (asset != null)
+        Console.WriteLine("Enter the type of the asset (MobilePhone or Laptop):");
+        string assetType = Console.ReadLine();
+
+        Console.WriteLine("Enter the name of the asset:");
+        string name = Console.ReadLine();
+
+        Console.WriteLine("Enter the model:");
+        string model = Console.ReadLine();
+
+        Console.WriteLine("Enter the price:");
+        int price = int.Parse(Console.ReadLine());  // Assume user inputs a correct numeric value
+
+        Console.WriteLine("Enter Office ID:");
+        int officeId = int.Parse(Console.ReadLine());  // Assume user inputs a correct numeric value
+
+        Asset newAsset;
+
+        switch (assetType)
         {
-            asset.ProductionDate = newDate;
-            Console.WriteLine($"Updated {asset.Name}'s production date to {newDate.ToShortDateString()}.");
+            case "MobilePhone":
+                newAsset = new MobilePhone
+                {
+                    Name = name,
+                    Model = model,
+                    Price = price,
+                    ProductionDate = DateTime.Now,
+                    OfficeId = officeId
+                };
+                break;
+            case "Laptop":
+                newAsset = new Laptop
+                {
+                    Name = name,
+                    Model = model,
+                    Price = price,
+                    ProductionDate = DateTime.Now,
+                    OfficeId = officeId
+                };
+                break;
+            default:
+                Console.WriteLine("Invalid asset type. Please enter either 'MobilePhone' or 'Laptop'.");
+                return;
         }
-        else
-        {
-            Console.WriteLine("Asset not found.");
-        }
+
+        _assetService.AddAsset(newAsset);
+
+        Console.WriteLine("Asset added!");
     }
+    
+    public void UpdateAssetProductionDate(string assetName, DateTime newDate)
+    {
+        Asset asset = _assetService.FindAssetByName(assetName);
+        
+        asset.ProductionDate = newDate;
+
+        _assetService.UpdateAsset(asset);
+
+        Console.WriteLine($"Update {asset.Name}s production date to {newDate.ToShortDateString()}.");
+    }
+
     
     public void DeleteAsset(string assetName)
     {
-        var assetToRemove = assets.FirstOrDefault(a => a.Name == assetName);
-        if (assetToRemove != null)
+        Asset asset = _assetService.FindAssetByName(assetName);
+        
+        if (asset != null)
         {
-            assets.Remove(assetToRemove);
+            _assetService.DeleteAsset(asset);
             Console.WriteLine($"Asset {assetName} removed successfully.");
         }
         else
